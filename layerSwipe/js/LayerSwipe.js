@@ -1,8 +1,9 @@
 define('application/LayerSwipe', [
   'esri/views/SceneView',
   'esri/Map',
-  'esri/core/watchUtils'
-], function(SceneView,Map,watchUtils) {
+  'esri/core/watchUtils',
+  'application/CloneLayer'
+], function(SceneView,Map,watchUtils,CloneLayer) {
   var Widget = function(options,divId) {
     this._init(options,divId);
   };
@@ -33,7 +34,28 @@ define('application/LayerSwipe', [
       var swipeMap = new Map();
       swipeMap.basemap = view.map.basemap;
       swipeMap.ground = view.map.ground;
-      swipeMap.addMany(view.map.layers);
+      //存在A地图通过addMany方法添加B地图的layers，则B地图layers消失的问题
+      // swipeMap.addMany(view.map.layers);
+      // view.map.addMany(swipeMap.layers);
+      var _layers = view.map.layers;
+      for(var i=0,len=_layers.length;i<len;i++){
+        var _layer = _layers.items[i];
+        var _id = _layer.id;
+        var isSwipeLayer =false;
+        for(var j=0,jlen = this.layers.length;j<jlen;j++){
+          var id = this.layers[j].id;
+          if(id == _id){
+            isSwipeLayer = true;
+            break;
+          }
+        }
+        var _CloneLayer = new CloneLayer();
+        if(!isSwipeLayer)
+        {
+          var newlayer = _CloneLayer.cloneLayer(_layer);
+          swipeMap.add(newlayer);
+        }
+      }
       /********以上代码保持两个地图一致*********/
       var swipeView = new SceneView({
         map: swipeMap,
@@ -42,8 +64,6 @@ define('application/LayerSwipe', [
         camera:view.camera,
         extent:view.extent
       });
-      swipeMap.addMany(this.layers);
-      
       this._synchronizeViews([view, swipeView]);
     },
     /**
@@ -138,17 +158,15 @@ define('application/LayerSwipe', [
         '<div class="vertical-slider all-slider">'+
           '<div class="handle"></div>'+
         '</div>';
-        $('#swipeViewDiv').css('clip', 'rect(0px ' + $map.width()/2 + 'px ' + $map.height() + 'px 0px)');
+        $('#swipeViewDiv').css('clip', 'rect(0px ' + $map.width()+ 'px ' + $map.height() + 'px '+$map.width()/2+'px)');
       }else if(this.type == "horizontal"){
         swipeLineTplHtml = 
         '<div class="horizontal-slider all-slider">'+
           '<div class="handle"></div>'+
         '</div>';
-        $('#swipeViewDiv').css('clip', 'rect(0px ' + $map.width() + 'px ' + $map.height()/2 + 'px 0px)');
+        $('#swipeViewDiv').css('clip', 'rect('+$map.height()/2+'px ' + $map.width() + 'px ' + $map.height() + 'px 0px)');
       }
       $('#'+this.divId).append(swipeLineTplHtml);
-      
-      
       this._bindEvent();
     },
     /**
@@ -162,9 +180,7 @@ define('application/LayerSwipe', [
       var $map = $('#'+this.divId);
       $slider.unbind('mousedown').on('mousedown', function () {
         isSelected = true;
-        _self.resetLocation()
-        $('.all-slider').css('opacity', 0);
-        $(this).css('opacity', 1);
+        _self.resetLocation();
         $selectEle = $(this);
       });
       $slider.unbind('mouseup').on('mouseup', function () {
@@ -176,11 +192,11 @@ define('application/LayerSwipe', [
           evt.preventDefault();
           if ($selectEle.hasClass('vertical-slider')) {
             $selectEle.css('left', evt.clientX + 'px');
-            $swipeViewDiv.css('clip', 'rect(0px ' + evt.clientX + 'px ' + $map.height() + 'px 0px)');
+            $swipeViewDiv.css('clip', 'rect(0px ' + $map.width() + 'px ' + $map.height() + 'px '+ evt.clientX + 'px)');
           }
           if ($selectEle.hasClass('horizontal-slider')) {
             $selectEle.css('top', evt.clientY + 'px');
-            $swipeViewDiv.css('clip', 'rect(0px ' + $map.width() + 'px ' + evt.clientY + 'px 0px)');
+            $swipeViewDiv.css('clip', 'rect('+evt.clientY +'px ' + $map.width() + 'px ' + $map.height() + 'px 0px)');
           }
         }
       });

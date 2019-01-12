@@ -57,14 +57,14 @@
         id:"layer2",
         url:layerUrl2
       });
-      // map.addMany([layer2]);
+      view.map.addMany([layer1,layer2]);
       var swipeWidget = null;
       view.when(function(){
         var type = $("#swipeTypeSelect").val();
         swipeWidget = new LayerSwipe({
             type: type,
             view:view,
-            layers: [layer1]
+            layers: [layer2]
         }, "viewDiv");
         swipeWidget.startup();
       });
@@ -79,7 +79,7 @@
         swipeWidget = new LayerSwipe({
             type: type,
             view:view,
-            layers: [layer1]
+            layers: [layer2]
         }, "viewDiv");
         swipeWidget.startup();
       });
